@@ -1,8 +1,7 @@
 import requests
 import pandas as pd
 import datetime
-import numpy as np
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 from urllib.error import HTTPError
 
 
@@ -53,10 +52,16 @@ def get_data_state(state):
     df = pd.DataFrame(res)
     interested_fields = ['date', 'state', 'positiveIncrease', 'totalTestResultsIncrease']
     df = df[interested_fields]
-    df['positive_ratio'] = ""
+    #  TODO: The -1 is a temporary hack. Clean the empty values properly
+    df['positive_ratio'] = -1
     df['positive_ratio'].loc[df['totalTestResultsIncrease'] > 0] = df['positiveIncrease']/df['totalTestResultsIncrease']
     df['positive_ratio'].loc[df['totalTestResultsIncrease'] == 0] = 1
-
+    df['positive_ratio'].loc[df['positive_ratio'] == -1] = 1
+    # TODO: Do a 5 day MA that uses past 5 present entries
+    df = df[['date', 'positive_ratio']]
+    ax = plt.gca()
+    df.plot(kind='line', x='date', y='positive_ratio', ax=ax)
+    plt.show()
     print(df[['date', 'positive_ratio']])
 
 # analyze()
