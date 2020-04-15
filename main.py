@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import datetime
+import numpy as np
 import matplotlib.pyplot as plt
 from urllib.error import HTTPError
 
@@ -46,23 +47,42 @@ def get_response(date, state=None):
 
 # USE THIS
 def get_data_state(state):
+    # TODO: clean up the code
+    # TODO: Do this for all other states
+    # TODO: Do this for the other function
+    # Call the API to get data
     payload = {"state": state}
     r = requests.get("https://covidtracking.com/api/states/daily", params=payload)
     res = r.json()
+
+    # Convert into a pandas dataframe
     df = pd.DataFrame(res)
+
+    # Get relevant fields
     interested_fields = ['date', 'state', 'positiveIncrease', 'totalTestResultsIncrease']
     df = df[interested_fields]
-    #  TODO: The -1 is a temporary hack. Clean the empty values properly
-    df['positive_ratio'] = -1
+
+    # Calculate our metric: positiveIncrease / totalTestResultsIncrease
+    df['positive_ratio'] = np.nan
     df['positive_ratio'].loc[df['totalTestResultsIncrease'] > 0] = df['positiveIncrease']/df['totalTestResultsIncrease']
-    df['positive_ratio'].loc[df['totalTestResultsIncrease'] == 0] = 1
-    df['positive_ratio'].loc[df['positive_ratio'] == -1] = 1
-    # TODO: Do a 5 day MA that uses past 5 present entries
+
+    # Drop all other columns we don't need anymore
     df = df[['date', 'positive_ratio']]
+
+    # Interpolate the missing values. This fills up missing values with the mean of the next and prev non missing value
+    df['inter'] = df['positive_ratio'].interpolate()
+
+    # Calculate 5 day moving average on the data. We reverse the data because the
+    # MA function begins the MA calculation from top row of the data.
+    df = df.iloc[::-1]
+    df['rolling_ma'] = df['inter'].rolling(window=5).mean()
+
+    # Plot the data
+    # TODO: Convert date to appropriate format
     ax = plt.gca()
-    df.plot(kind='line', x='date', y='positive_ratio', ax=ax)
+    df.plot(kind='line', x='date', y='rolling_ma', ax=ax)
     plt.show()
-    print(df[['date', 'positive_ratio']])
+    print(df)
 
 # analyze()
 get_data_state('CA')
