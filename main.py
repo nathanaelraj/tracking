@@ -72,17 +72,22 @@ def get_data_state(state):
     # Interpolate the missing values. This fills up missing values with the mean of the next and prev non missing value
     df['inter'] = df['positive_ratio'].interpolate()
 
+    # Convert the date to a date format
+    df['date'] = pd.to_datetime(df['date'], format='%Y%m%d', errors='ignore')
+
     # Calculate 5 day moving average on the data. We reverse the data because the
     # MA function begins the MA calculation from top row of the data.
     df = df.iloc[::-1]
     df['rolling_ma'] = df['inter'].rolling(window=5).mean()
 
-    # Plot the data
-    # TODO: Convert date to appropriate format
     ax = plt.gca()
-    df.plot(kind='line', x='date', y='rolling_ma', ax=ax)
+
+    # Plot the data
+    df.plot(kind='line', x='date', y='rolling_ma', ax=ax, title=state)
+    plt.xlabel("Date")
+    plt.ylabel("Ratio of test showing +ve")
     plt.show()
     print(df)
 
 # analyze()
-get_data_state('CA')
+get_data_state('TX')
